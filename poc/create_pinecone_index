@@ -1,0 +1,182 @@
+import os
+from dotenv import load_dotenv
+from langchain_openai import OpenAIEmbeddings
+from pinecone import Pinecone, ServerlessSpec
+from langchain_pinecone import PineconeEmbeddings, PineconeVectorStore
+
+
+
+from pdf_parser import parse_pdf
+
+load_dotenv()
+
+
+class PineconeIndex:
+    def __init__(self, index_name: str, model_name: str, provider: str):
+        self.index_name = index_name
+        self.model_name = model_name
+        self.provider = provider
+        self.pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+
+    def get_pc_index(self):
+        self.index = self.pc.Index(self.index_name)
+    
+    def create_index(self):
+        """_summary_
+        
+        if already exists, HTTP response body: {"error":{"code":"ALREADY_EXISTS","message":"Resource  already exists"},"status":409}
+
+        """
+        
+        if self.provider == 'openai':
+            dimension = 1536
+        else:
+            dimension = 1024
+        
+        try:
+            self.pc.create_index(
+                name=self.index_name,
+                dimension=dimension, # Replace with your model dimensions
+                metric="cosine", # Replace with your model metric
+                spec=ServerlessSpec(
+                    cloud="aws",
+                    region="us-east-1"
+                    ) 
+                )
+        except Exception as e:
+            print(e)
+        self.index = self.pc.Index(self.index_name)
+        
+    def pinecone_embedder(self, inputs:list[str], model_name:str):
+        """ embeddings from pinecone 
+
+        Args:
+            documents (_type_): _description_
+
+        Returns:
+            EmbeddingsList(
+                model='multilingual-e5-large',
+                data=[
+                    {'values': [0.00832366943359375,....]},
+                ],
+                usage={'total_tokens': 4661}
+            )
+        """
+        
+        embeddings = self.pc.inference.embed(
+            model_name,
+            inputs=inputs,
+            parameters={
+                "input_type": "passage"
+            }
+            )
+        return embeddings
+    
+    def insert_documents_pinecone(self, documents, namespace):
+        
+        embeddings = self.pinecone_embedder([documents.page_content for documents in documents], self.model_name)
+        
+        vectors = []
+        for d, e in zip(documents, embeddings):
+            vectors.append({
+                "id": d.metadata['source'].split("/")[-1]+'/'+str(d.metadata.get("question_number", 'unknown')),
+                "values": e['values'],
+                "metadata": {'text': d.page_content, 'source': d.metadata['source'], 'question_number': d.metadata.get("question_number", 0)}
+            })
+
+        self.index.upsert(vectors=vectors, namespace=namespace)
+        
+    def query_pinecone(self, query:str, namespace):
+        query_embeddings = self.pinecone_embedder([query], self.model_name)
+        query_results = self.index.query(
+            namespace=namespace,
+            vector=query_embeddings[0]['values'],
+            top_k=5,
+            include_values=True,
+            include_metadata=True
+        )
+        return query_results
+    
+    def get_langchain_vector_store(self, index_name, namespace):
+        self.vector_store = PineconeVectorStore(
+            index_name=index_name,
+            namespace=namespace
+            )
+    
+    def insert_documents_langchain(self, documents, embeddings, index_name, namespace):
+        self.vector_store = PineconeVectorStore.from_documents(documents, embeddings, index_name=self.index_name, namespace=namespace)
+        # vector_store.add_documents(documents)
+        
+    def search_documents_langchain(self, query):
+        docs = self.vector_store.similarity_search(query, k=2)
+        
+
+pdf_directory = "/Users/badrou/repository/david_goggins_pocket/poc/data/"
+reorganized_docs = parse_pdf(pdf_directory)
+
+reorganized_docs[0].page_content
+
+## Custom embeddings
+from langchain_huggingface.embeddings import HuggingFaceEmbeddings
+model_name = "BAAI/bge-m3"
+hf_embeddings = HuggingFaceEmbeddings(
+    model_name=model_name,
+)
+
+# pinecone embeddings
+microsoft_model_name = "multilingual-e5-large"
+pc_index = PineconeIndex(index_name="traiteur", model_name=microsoft_model_name)
+
+# pc_index.create_index()
+
+pc_index.get_pc_index()
+_index = pc_index.index
+
+namespace = "test_processed_2" 
+
+pc_index.insert_documents_pinecone(reorganized_docs,namespace=namespace)
+
+# pc_index.index.delete(namespace=namespace, delete_all=True)
+
+query = "Quelle est la distance à laquelle vous livrez?"
+
+[{**match.metadata,"score":match.score} for match in pc_index.query_pinecone(query, namespace=namespace).matches]
+
+def create_vector_store(pages):
+    embeddings = OpenAIEmbeddings()
+    vector_store = FAISS.from_documents(pages, embeddings)
+    return vector_store
+
+
+def search_documents(vector_store, query):
+    docs = vector_store.similarity_search(query, k=2)
+    for i, doc in enumerate(docs):
+        print(f"\nResult {i + 1}:")
+        print(f"Page: {doc.metadata['page']}")
+        print(f"Content: {doc.page_content[:200]}...")
+        
+        
+
+embeddings = PineconeEmbeddings(model="multilingual-e5-large")       
+vector_store = PineconeVectorStore(
+    index_name='traiteur',
+    namespace=namespace,
+    embedding=embeddings
+    )
+
+
+vector_store.similarity_search("Pouvez vous nous livrer à Anvers?", k=3)
+
+
+openai_embeddings = OpenAIEmbeddings(model_name='text-embedding-3-small')
+
+
+pc_index_test= PineconeIndex(index_name='traiteur-openai', model_name='text-embedding-3-small', provider='openai')
+
+pc_index_test.create_index()
+
+vector_store_openai = PineconeVectorStore.from_documents(reorganized_docs, openai_embeddings, index_name='traiteur-openai', namespace='test')
+
+pc_index_test.get_langchain_vector_store(index_name='traiteur-openai',namespace='test',)
+
+vector_store_openai.similarity_search("jusqu'où livrez vous?", k=3)

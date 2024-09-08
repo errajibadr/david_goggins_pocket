@@ -41,7 +41,9 @@ def reorganize_documents(documents):
         # Process the splits
         for i in range(1, len(splits), 2):
             question_num = splits[i].strip(".")
-            content = splits[i + 1].strip() if i + 1 < len(splits) else ""
+            content = (
+                splits[i + 1].strip().replace("\n", " ") if i + 1 < len(splits) else ""
+            )
 
             final_docs.append(
                 Document(
@@ -66,22 +68,16 @@ def reorganize_documents(documents):
     return final_docs
 
 
-def create_vector_store(pages):
-    embeddings = OpenAIEmbeddings()
-    vector_store = FAISS.from_documents(pages, embeddings)
-    return vector_store
+def parse_pdf(pdf_directory: str) -> list:
+    """Parse all pdf files in a directory and reorganize the documents
 
+    Args:
+        pdf_directory (str): The directory containing the pdf files
 
-def search_documents(vector_store, query):
-    docs = vector_store.similarity_search(query, k=2)
-    for i, doc in enumerate(docs):
-        print(f"\nResult {i + 1}:")
-        print(f"Page: {doc.metadata['page']}")
-        print(f"Content: {doc.page_content[:200]}...")
-
-
-def main():
-    pdf_directory = "/Users/badrou/repository/david_goggins_pocket/poc/data/"
+    Returns:
+        list: A list of reorganized documents : langchain.schema.Document
+        Document(page_content="", metadata={"source": "file_path", "question_number": "1"})
+    """
     all_pages = []
 
     # Process all PDF files in the directory
@@ -95,6 +91,24 @@ def main():
 
     # Reorganize documents
     reorganized_docs = reorganize_documents(all_pages)
+    return reorganized_docs
+
+
+def main():
+    pdf_directory = "/Users/badrou/repository/david_goggins_pocket/poc/data/"
+    reorganized_docs = parse_pdf(pdf_directory)
+
+    all_pages = []
+
+    # Process all PDF files in the directory
+    for filename in os.listdir(pdf_directory):
+        if filename.endswith(".pdf"):
+            file_path = os.path.join(pdf_directory, filename)
+            print(" processing file_path : ", file_path)
+            pages = process_pdf(file_path)
+            all_pages.extend(pages)
+
+    all_pages
 
     # Print reorganized documents
     for i, doc in enumerate(reorganized_docs):
@@ -116,3 +130,11 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    loader = PyPDFLoader(
+        "/Users/badrou/repository/david_goggins_pocket/poc/data/FAQ_traiteu.pdf"
+    )
+    loader.load()
+    pages = loader.load_and_split()
+    pages[0].page_content
+    print(pages[0].page_content)

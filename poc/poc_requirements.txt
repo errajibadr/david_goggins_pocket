@@ -1,1 +1,1 @@
- pip install langchain langchain-community langchain-openai faiss-cpu
+ pip install langchain langchain-community langchain-openai faiss-cpu  pinecone langchain_huggingfacelangchain_pinecone

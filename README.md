@@ -17,6 +17,7 @@ AI-powered task management assistant that helps overcome procrastination by prov
 - LangGraph
 - Pydantic
 - Instructor
+- LLAMA3.1-8b
 - OpenAI GPT-4
 - Notion API
 - python-telegram-bot (for future Telegram integration)
