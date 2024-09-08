@@ -1,0 +1,7 @@
+{
+  "terminal.integrated.env.osx": {
+    "PYTHONPATH": "${workspaceFolder}:${env:PYTHONPATH}"
+  },
+  "python.analysis.extraPaths": ["${workspaceFolder}", "${workspaceFolder}/ai_agent"],
+  "python.autoComplete.extraPaths": ["${workspaceFolder}", "${workspaceFolder}/ai_agent"]
+}
