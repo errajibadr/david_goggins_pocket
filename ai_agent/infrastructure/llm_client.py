@@ -8,6 +8,7 @@ from langsmith.wrappers import wrap_openai
 from openai import OpenAI
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
+from langchain.tools import BaseTool
 
 import instructor
 
@@ -119,6 +120,9 @@ class LLMClient:
                 response_model=response_model, messages=x.to_messages(), **kwargs
             )
         )
+
+    def bind_tools(self, tools: list[BaseTool]):
+        return self.client.bind_tools(tools)
 
 
 if __name__ == "__main__":

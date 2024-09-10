@@ -171,31 +171,9 @@ class PineconeIndexFactory:
 
 # Usage example
 if __name__ == "__main__":
+    from poc.pdf_parser import parse_pdf
 
-    def pinecone_embedder(self, inputs: list[str], model_name: str):
-        """embeddings from pinecone
-
-        Args:
-            documents (_type_): _description_
-
-        Returns:
-            EmbeddingsList(
-                model='multilingual-e5-large',
-                data=[
-                    {'values': [0.00832366943359375,....]},
-                ],
-                usage={'total_tokens': 4661}
-            )
-        """
-
-        embeddings = self.pc.inference.embed(
-            model_name, inputs=inputs, parameters={"input_type": "passage"}
-        )
-        return embeddings
-
-    from pdf_parser import parse_pdf
-
-    pdf_directory = "data/"
+    pdf_directory = "../poc/data/"
     reorganized_docs = parse_pdf(pdf_directory)
 
     # Create a Pinecone index with OpenAI embeddings

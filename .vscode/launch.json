@@ -19,7 +19,7 @@
       "type": "debugpy",
       "request": "launch",
       "program": "${file}",
-      "env": { "PYTHONPATH": "${workspaceFolder}" },
+      "env": { "PYTHONPATH": "${workspaceFolder}${pathSeparator}${env:PYTHONPATH}" },
       "console": "integratedTerminal"
     },
     {
@@ -29,7 +29,7 @@
       "module": "pytest",
       "args": ["tests/test_task_model.py", "tests/test_notion_client.py"],
       "cwd": "${workspaceFolder}",
-      "env": { "PYTHONPATH": "${workspaceFolder}" },
+      "env": { "PYTHONPATH": "${workspaceFolder}${pathSeparator}${env:PYTHONPATH}" },
       "console": "integratedTerminal"
     }
   ]
