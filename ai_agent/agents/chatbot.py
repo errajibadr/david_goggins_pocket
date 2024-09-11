@@ -15,7 +15,6 @@ from typing_extensions import TypedDict
 from typing import Annotated
 from langgraph.graph.message import AnyMessage, add_messages
 
-from ai_agent.infrastructure.llm_client import LLMClient
 
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -133,10 +132,6 @@ if __name__ == "__main__":
 
     llm_with_tools = llm.bind_tools([lookup_faq])
     # resp = llm_with_tools.invoke("quelle est la distance entre paris et lyon?")
-
-    instructor.patch(llm_with_tools)
-
-    # resp.tool_calls
 
     primary_assistant_prompt = ChatPromptTemplate.from_messages(
         [
